@@ -110,9 +110,19 @@ export default function App() {
     [selectedConnectors, selectedSpeeds]
   );
 
-  // Handle region change (for re-clustering)
+  // Handle region change (for re-clustering) - debounced to prevent flickering
+  const regionTimeoutRef = useRef(null);
+  
   const handleRegionChangeComplete = useCallback((newRegion) => {
-    setRegion(newRegion);
+    // Clear any pending timeout
+    if (regionTimeoutRef.current) {
+      clearTimeout(regionTimeoutRef.current);
+    }
+    
+    // Debounce the region update to prevent rapid re-clustering
+    regionTimeoutRef.current = setTimeout(() => {
+      setRegion(newRegion);
+    }, 100);
   }, []);
 
   // Handle radius change
