@@ -126,6 +126,16 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 12,
   },
+  handleContainer: {
+    alignItems: 'center',
+    paddingBottom: 8,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
