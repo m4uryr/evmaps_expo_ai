@@ -518,10 +518,11 @@ export default function App() {
     }
   }, [isNavigating, radius, loadStations]);
 
-  // Handle station marker press
+  // Handle station marker press - show station info card
   const handleStationPress = useCallback((station) => {
     setSelectedLocation(null);
     setSelectedStation(station);
+    // Collapse panel to show the station card
     setIsPanelExpanded(false);
   }, []);
 
