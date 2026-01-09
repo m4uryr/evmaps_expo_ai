@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ev-charging-finder",
+    "name": "EV Charging Finder",
     "slug": "ev-charging-finder",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -10,20 +10,46 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1a1a2e"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.evchargingfinder.app",
+      "config": {
+        "googleMapsApiKey": "AIzaSyCQt4cOfDNzShGdTMqZmR4HBZya00Fu_Hs"
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to find nearby EV charging stations and provide navigation.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs access to your location to find nearby EV charging stations and provide navigation."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1a1a2e"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.evchargingfinder.app",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCQt4cOfDNzShGdTMqZmR4HBZya00Fu_Hs"
+        }
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow EV Charging Finder to use your location."
+        }
+      ]
+    ]
   }
 }
