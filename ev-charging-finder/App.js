@@ -115,12 +115,17 @@ export default function App() {
   const handleRadiusChange = useCallback(
     (newRadius) => {
       setRadius(newRadius);
-      const centerLocation = selectedLocation || userLocation;
-      if (centerLocation && !isNavigating) {
-        loadStations(centerLocation.latitude, centerLocation.longitude, newRadius);
+      if (isNavigating && routeCoordinates.length > 0) {
+        // Re-fetch stations along route with new radius
+        fetchStationsAlongRoute(routeCoordinates, newRadius, selectedConnectors, selectedSpeeds);
+      } else {
+        const centerLocation = selectedLocation || userLocation;
+        if (centerLocation) {
+          loadStations(centerLocation.latitude, centerLocation.longitude, newRadius);
+        }
       }
     },
-    [userLocation, selectedLocation, isNavigating, loadStations]
+    [userLocation, selectedLocation, isNavigating, routeCoordinates, selectedConnectors, selectedSpeeds, loadStations]
   );
 
   // Handle connector toggle
