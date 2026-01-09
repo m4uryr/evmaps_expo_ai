@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { PIN_COLORS } from '../constants';
@@ -13,19 +13,6 @@ const SPEED_PRIORITY = {
 
 const ClusterMarker = ({ cluster, onPress }) => {
   const { coordinate, stations, count } = cluster;
-  
-  // Track view changes temporarily when count changes to force marker re-render
-  const [shouldTrackChanges, setShouldTrackChanges] = useState(true);
-  
-  useEffect(() => {
-    // Enable tracking when cluster changes
-    setShouldTrackChanges(true);
-    // Disable after a short delay to improve performance
-    const timer = setTimeout(() => {
-      setShouldTrackChanges(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [count, cluster.id]);
 
   // Find the fastest charging speed in the cluster
   const fastestSpeed = stations.reduce((fastest, station) => {
@@ -41,7 +28,9 @@ const ClusterMarker = ({ cluster, onPress }) => {
     <Marker
       coordinate={coordinate}
       onPress={() => onPress(cluster)}
-      tracksViewChanges={shouldTrackChanges}
+      tracksViewChanges={Platform.OS === 'ios'}
+      zIndex={2}
+      anchor={{ x: 0.5, y: 1 }}
     >
       <View style={styles.markerContainer}>
         <View style={[styles.markerCircle, { backgroundColor: pinColor }]}>
@@ -60,19 +49,21 @@ const ClusterMarker = ({ cluster, onPress }) => {
 const styles = StyleSheet.create({
   markerContainer: {
     alignItems: 'center',
+    width: 40,
+    height: 50,
   },
   markerCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: '#000000',
+    borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 5,
   },
   countText: {
@@ -89,18 +80,11 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     borderTopColor: '#3B82F6',
-    marginTop: -1,
+    marginTop: -2,
   },
 });
 
-// Custom comparison to force re-render when cluster content changes
-const areEqual = (prevProps, nextProps) => {
-  return (
-    prevProps.cluster.id === nextProps.cluster.id &&
-    prevProps.cluster.count === nextProps.cluster.count &&
-    prevProps.cluster.coordinate.latitude === nextProps.cluster.coordinate.latitude &&
-    prevProps.cluster.coordinate.longitude === nextProps.cluster.coordinate.longitude
-  );
-};
-
-export default React.memo(ClusterMarker, areEqual);
+// Only re-render if cluster ID changes (which includes station composition and count)
+export default React.memo(ClusterMarker, (prevProps, nextProps) => {
+  return prevProps.cluster.id === nextProps.cluster.id;
+});
