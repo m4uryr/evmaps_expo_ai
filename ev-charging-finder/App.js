@@ -155,18 +155,23 @@ export default function App() {
         ? selectedSpeeds.filter((s) => s !== speedId)
         : [...selectedSpeeds, speedId];
       setSelectedSpeeds(newSpeeds);
-      const centerLocation = selectedLocation || userLocation;
-      if (centerLocation && !isNavigating) {
-        loadStations(
-          centerLocation.latitude,
-          centerLocation.longitude,
-          radius,
-          selectedConnectors,
-          newSpeeds
-        );
+      if (isNavigating && routeCoordinates.length > 0) {
+        // Re-fetch stations along route with new speeds
+        fetchStationsAlongRoute(routeCoordinates, radius, selectedConnectors, newSpeeds);
+      } else {
+        const centerLocation = selectedLocation || userLocation;
+        if (centerLocation) {
+          loadStations(
+            centerLocation.latitude,
+            centerLocation.longitude,
+            radius,
+            selectedConnectors,
+            newSpeeds
+          );
+        }
       }
     },
-    [selectedSpeeds, userLocation, selectedLocation, isNavigating, radius, selectedConnectors, loadStations]
+    [selectedSpeeds, userLocation, selectedLocation, isNavigating, routeCoordinates, radius, selectedConnectors, loadStations]
   );
 
   // Handle search input change
