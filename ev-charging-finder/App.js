@@ -415,7 +415,7 @@ export default function App() {
 
   // Fetch stations along the route
   const fetchStationsAlongRoute = useCallback(
-    async (routePoints) => {
+    async (routePoints, searchRadius = radius, connectors = selectedConnectors, speeds = selectedSpeeds) => {
       const queryPoints = getPointsAlongRoute(routePoints, ROUTE_FETCH_INTERVAL_KM);
       const allStations = [];
       const seenIds = new Set();
@@ -425,9 +425,9 @@ export default function App() {
           const stationsAtPoint = await fetchChargingStations(
             point.latitude,
             point.longitude,
-            radius,
-            selectedConnectors,
-            selectedSpeeds
+            searchRadius,
+            connectors,
+            speeds
           );
 
           for (const station of stationsAtPoint) {
