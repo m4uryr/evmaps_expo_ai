@@ -246,7 +246,7 @@ export default function App() {
     [radius, loadStations]
   );
 
-  // Handle place selection from autocomplete
+  // Handle place selection from autocomplete - show location popup instead of navigating directly
   const handleSelectPlace = useCallback(
     async (place) => {
       setIsSearching(true);
@@ -261,7 +261,27 @@ export default function App() {
             latitude: location.lat,
             longitude: location.lng,
           };
-          startNavigation(destCoord, details.result.formatted_address || place.description);
+          
+          // Set selected location to show LocationCard with navigate button
+          setSelectedStation(null);
+          setIsPanelExpanded(false);
+          setSelectedLocation({
+            latitude: destCoord.latitude,
+            longitude: destCoord.longitude,
+            name: details.result.name || place.structured_formatting?.main_text || place.description?.split(',')[0],
+            address: details.result.formatted_address || place.description,
+          });
+
+          // Load stations centered on the selected location
+          loadStations(destCoord.latitude, destCoord.longitude, radius);
+
+          // Animate map to the location
+          mapRef.current?.animateToRegion({
+            ...destCoord,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          });
+
           setSessionToken(Date.now().toString());
         }
       } catch (error) {
@@ -271,7 +291,7 @@ export default function App() {
         setIsSearching(false);
       }
     },
-    [sessionToken, userLocation]
+    [sessionToken, radius, loadStations]
   );
 
   // Handle map press - select location and show card
