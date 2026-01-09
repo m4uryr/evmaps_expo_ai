@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PIN_COLORS } from '../constants';
+import { openOperatorApp } from '../utils/deepLinking';
 
 const StationCard = ({ station, onNavigate, onClose }) => {
   if (!station) return null;
@@ -13,10 +14,8 @@ const StationCard = ({ station, onNavigate, onClose }) => {
     (a, b) => a.pricePerKwh - b.pricePerKwh
   );
 
-  const openWebsite = (url) => {
-    if (url) {
-      Linking.openURL(url);
-    }
+  const handleOperatorPress = (operator) => {
+    openOperatorApp(operator.name, station.id, station.lat, station.lng);
   };
 
   return (
@@ -39,6 +38,12 @@ const StationCard = ({ station, onNavigate, onClose }) => {
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close" size={24} color="#666" />
         </TouchableOpacity>
+      </View>
+
+      {/* Station ID */}
+      <View style={styles.stationIdRow}>
+        <Text style={styles.stationIdLabel}>Station ID:</Text>
+        <Text style={styles.stationIdValue}>{station.id}</Text>
       </View>
 
       <View style={styles.addressRow}>
@@ -66,8 +71,8 @@ const StationCard = ({ station, onNavigate, onClose }) => {
         </View>
       </View>
 
-      <Text style={styles.operatorsTitle}>Operators (sorted by price)</Text>
-      <ScrollView style={styles.operatorsList} nestedScrollEnabled>
+      <Text style={styles.operatorsTitle}>Operators (sorted by price) - Tap to open app</Text>
+      <ScrollView style={styles.operatorsList} nestedScrollEnabled showsVerticalScrollIndicator>
         {sortedOperators.map((operator, index) => (
           <TouchableOpacity
             key={index}
@@ -75,10 +80,14 @@ const StationCard = ({ station, onNavigate, onClose }) => {
               styles.operatorCard,
               index === 0 && styles.bestPriceCard,
             ]}
-            onPress={() => openWebsite(operator.website)}
+            onPress={() => handleOperatorPress(operator)}
+            activeOpacity={0.7}
           >
             <View style={styles.operatorHeader}>
-              <Text style={styles.operatorName}>{operator.name}</Text>
+              <View style={styles.operatorNameRow}>
+                <Text style={styles.operatorName}>{operator.name}</Text>
+                <Ionicons name="open-outline" size={14} color="#666" style={styles.openIcon} />
+              </View>
               {index === 0 && (
                 <View style={styles.bestPriceBadge}>
                   <Text style={styles.bestPriceText}>Best Price</Text>
@@ -140,7 +149,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerLeft: {
     flex: 1,
@@ -169,10 +178,26 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
+  stationIdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  stationIdLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginRight: 4,
+  },
+  stationIdValue: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   addressText: {
     fontSize: 14,
@@ -184,7 +209,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    marginBottom: 12,
+    marginBottom: 10,
     gap: 12,
   },
   infoItem: {
@@ -213,7 +238,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   operatorsTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1a1a2e',
     marginBottom: 8,
@@ -241,10 +266,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
+  operatorNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   operatorName: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1a1a2e',
+  },
+  openIcon: {
+    marginLeft: 6,
   },
   bestPriceBadge: {
     backgroundColor: '#10B981',
