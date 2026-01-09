@@ -210,9 +210,9 @@ const styles = StyleSheet.create({
   },
   operatorCard: {
     backgroundColor: '#F9FAFB',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 8,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E5E7EB',
   },
