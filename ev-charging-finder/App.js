@@ -573,6 +573,17 @@ export default function App() {
         onPress={handleMapPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
+        {/* Route polyline - render first so it's below markers, use zIndex for visibility */}
+        {isNavigating && routeCoordinates.length > 0 && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor="#3B82F6"
+            strokeWidth={6}
+            zIndex={1}
+            geodesic={true}
+          />
+        )}
+
         {/* Clustered charging station markers */}
         {clusters.map((cluster) => (
           <ClusterMarker
@@ -582,22 +593,13 @@ export default function App() {
           />
         ))}
 
-        {/* Route polyline */}
-        {routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor="#3B82F6"
-            strokeWidth={5}
-            lineDashPattern={[0]}
-          />
-        )}
-
         {/* Destination marker */}
         {destination && (
           <Marker
             coordinate={destination}
             pinColor="#10B981"
             title="Destination"
+            zIndex={3}
           />
         )}
 
@@ -609,14 +611,15 @@ export default function App() {
               longitude: selectedLocation.longitude,
             }}
             pinColor="#EF4444"
+            zIndex={3}
           />
         )}
       </MapView>
 
-      {/* Filter Panel - only show when no card is visible or when navigating */}
-      {(!showStationCard && !showLocationCard) || isNavigating ? (
+      {/* Filter Panel - show when no station card is visible, or when navigating, or collapsed when location card is shown */}
+      {!showStationCard && (
         <FilterPanel
-          isExpanded={isPanelExpanded}
+          isExpanded={isPanelExpanded && !showLocationCard}
           onToggle={() => setIsPanelExpanded(!isPanelExpanded)}
           radius={radius}
           onRadiusChange={handleRadiusChange}
