@@ -21,6 +21,11 @@ const StationCard = ({ station, onNavigate, onClose }) => {
 
   return (
     <View style={styles.container}>
+      {/* Drag handle indicator */}
+      <View style={styles.handleContainer}>
+        <View style={styles.handle} />
+      </View>
+
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={[styles.speedBadge, { backgroundColor: speedColor }]}>
