@@ -135,12 +135,17 @@ export default function App() {
         ? selectedConnectors.filter((c) => c !== connectorId)
         : [...selectedConnectors, connectorId];
       setSelectedConnectors(newConnectors);
-      const centerLocation = selectedLocation || userLocation;
-      if (centerLocation && !isNavigating) {
-        loadStations(centerLocation.latitude, centerLocation.longitude, radius, newConnectors);
+      if (isNavigating && routeCoordinates.length > 0) {
+        // Re-fetch stations along route with new connectors
+        fetchStationsAlongRoute(routeCoordinates, radius, newConnectors, selectedSpeeds);
+      } else {
+        const centerLocation = selectedLocation || userLocation;
+        if (centerLocation) {
+          loadStations(centerLocation.latitude, centerLocation.longitude, radius, newConnectors);
+        }
       }
     },
-    [selectedConnectors, userLocation, selectedLocation, isNavigating, radius, loadStations]
+    [selectedConnectors, userLocation, selectedLocation, isNavigating, routeCoordinates, radius, selectedSpeeds, loadStations]
   );
 
   // Handle speed toggle
