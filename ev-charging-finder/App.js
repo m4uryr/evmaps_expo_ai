@@ -641,7 +641,7 @@ export default function App() {
           onNextStep={() => setCurrentStep((prev) => Math.min(prev + 1, (navigationInfo?.steps?.length || 1) - 1))}
           onPrevStep={() => setCurrentStep((prev) => Math.max(prev - 1, 0))}
         />
-      ) : null}
+      )}
 
       {/* Station Card - anchored to bottom, shows full station info */}
       {showStationCard && (
