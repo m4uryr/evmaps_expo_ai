@@ -88,9 +88,19 @@ const styles = StyleSheet.create({
     borderTopWidth: 9,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#000000',
+    borderTopColor: '#3B82F6',
     marginTop: -1,
   },
 });
 
-export default React.memo(ClusterMarker);
+// Custom comparison to force re-render when cluster content changes
+const areEqual = (prevProps, nextProps) => {
+  return (
+    prevProps.cluster.id === nextProps.cluster.id &&
+    prevProps.cluster.count === nextProps.cluster.count &&
+    prevProps.cluster.coordinate.latitude === nextProps.cluster.coordinate.latitude &&
+    prevProps.cluster.coordinate.longitude === nextProps.cluster.coordinate.longitude
+  );
+};
+
+export default React.memo(ClusterMarker, areEqual);
