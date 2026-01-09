@@ -553,9 +553,9 @@ export default function App() {
     setSelectedLocation(null);
   }, []);
 
-  // Determine which card to show
-  const showStationCard = selectedStation && !isPanelExpanded;
-  const showLocationCard = selectedLocation && !selectedStation && !isPanelExpanded && !isNavigating;
+  // Determine which card to show - station card takes priority and should show station info
+  const showStationCard = selectedStation !== null;
+  const showLocationCard = selectedLocation && !selectedStation && !isNavigating;
 
   return (
     <View style={styles.container}>
@@ -612,32 +612,34 @@ export default function App() {
         )}
       </MapView>
 
-      {/* Filter Panel */}
-      <FilterPanel
-        isExpanded={isPanelExpanded}
-        onToggle={() => setIsPanelExpanded(!isPanelExpanded)}
-        radius={radius}
-        onRadiusChange={handleRadiusChange}
-        selectedConnectors={selectedConnectors}
-        onConnectorToggle={handleConnectorToggle}
-        selectedSpeeds={selectedSpeeds}
-        onSpeedToggle={handleSpeedToggle}
-        searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
-        onSearch={handleSearch}
-        autocompleteResults={autocompleteResults}
-        onSelectPlace={handleSelectPlace}
-        isSearching={isSearching}
-        onMyLocation={handleMyLocation}
-        isNavigating={isNavigating}
-        navigationInfo={navigationInfo}
-        onCancelNavigation={handleCancelNavigation}
-        currentStep={currentStep}
-        onNextStep={() => setCurrentStep((prev) => Math.min(prev + 1, (navigationInfo?.steps?.length || 1) - 1))}
-        onPrevStep={() => setCurrentStep((prev) => Math.max(prev - 1, 0))}
-      />
+      {/* Filter Panel - only show when no card is visible or when navigating */}
+      {(!showStationCard && !showLocationCard) || isNavigating ? (
+        <FilterPanel
+          isExpanded={isPanelExpanded}
+          onToggle={() => setIsPanelExpanded(!isPanelExpanded)}
+          radius={radius}
+          onRadiusChange={handleRadiusChange}
+          selectedConnectors={selectedConnectors}
+          onConnectorToggle={handleConnectorToggle}
+          selectedSpeeds={selectedSpeeds}
+          onSpeedToggle={handleSpeedToggle}
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          onSearch={handleSearch}
+          autocompleteResults={autocompleteResults}
+          onSelectPlace={handleSelectPlace}
+          isSearching={isSearching}
+          onMyLocation={handleMyLocation}
+          isNavigating={isNavigating}
+          navigationInfo={navigationInfo}
+          onCancelNavigation={handleCancelNavigation}
+          currentStep={currentStep}
+          onNextStep={() => setCurrentStep((prev) => Math.min(prev + 1, (navigationInfo?.steps?.length || 1) - 1))}
+          onPrevStep={() => setCurrentStep((prev) => Math.max(prev - 1, 0))}
+        />
+      ) : null}
 
-      {/* Station Card - anchored to bottom */}
+      {/* Station Card - anchored to bottom, shows full station info */}
       {showStationCard && (
         <View style={styles.bottomCardContainer}>
           <StationCard
@@ -677,5 +679,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
+    elevation: 100,
   },
 });
