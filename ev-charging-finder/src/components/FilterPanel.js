@@ -37,6 +37,7 @@ const FilterPanel = ({
   onPrevStep,
 }) => {
   const [localRadius, setLocalRadius] = useState(radius);
+  const [showFilters, setShowFilters] = useState(false);
 
   const handleSearchSubmit = () => {
     Keyboard.dismiss();
@@ -63,76 +64,177 @@ const FilterPanel = ({
       </View>
 
       {isNavigating ? (
-        <View style={styles.navigationContainer}>
-          <View style={styles.navInfoRow}>
-            <View style={styles.navInfoItem}>
-              <Ionicons name="time" size={20} color="#3B82F6" />
-              <Text style={styles.navInfoValue}>{navigationInfo?.duration || '--'}</Text>
-              <Text style={styles.navInfoLabel}>Duration</Text>
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          <View style={styles.navigationContainer}>
+            <View style={styles.navInfoRow}>
+              <View style={styles.navInfoItem}>
+                <Ionicons name="time" size={20} color="#3B82F6" />
+                <Text style={styles.navInfoValue}>{navigationInfo?.duration || '--'}</Text>
+                <Text style={styles.navInfoLabel}>Duration</Text>
+              </View>
+              <View style={styles.navInfoItem}>
+                <Ionicons name="speedometer" size={20} color="#3B82F6" />
+                <Text style={styles.navInfoValue}>{navigationInfo?.distance || '--'}</Text>
+                <Text style={styles.navInfoLabel}>Distance</Text>
+              </View>
             </View>
-            <View style={styles.navInfoItem}>
-              <Ionicons name="speedometer" size={20} color="#3B82F6" />
-              <Text style={styles.navInfoValue}>{navigationInfo?.distance || '--'}</Text>
-              <Text style={styles.navInfoLabel}>Distance</Text>
-            </View>
-          </View>
 
-          <View style={styles.destinationRow}>
-            <Ionicons name="flag" size={18} color="#10B981" />
-            <Text style={styles.destinationText} numberOfLines={2}>
-              {navigationInfo?.destination || 'Destination'}
-            </Text>
-          </View>
-
-          {navigationInfo?.steps && navigationInfo.steps.length > 0 && (
-            <View style={styles.stepContainer}>
-              <Text style={styles.stepTitle}>
-                Step {currentStep + 1} of {navigationInfo.steps.length}
+            <View style={styles.destinationRow}>
+              <Ionicons name="flag" size={18} color="#10B981" />
+              <Text style={styles.destinationText} numberOfLines={2}>
+                {navigationInfo?.destination || 'Destination'}
               </Text>
-              <View style={styles.stepContent}>
-                <Ionicons
-                  name={getManeuverIcon(navigationInfo.steps[currentStep]?.maneuver)}
-                  size={24}
-                  color="#3B82F6"
-                />
-                <Text style={styles.stepInstruction}>
-                  {navigationInfo.steps[currentStep]?.instruction?.replace(/<[^>]*>/g, '') || ''}
+            </View>
+
+            {navigationInfo?.steps && navigationInfo.steps.length > 0 && (
+              <View style={styles.stepContainer}>
+                <Text style={styles.stepTitle}>
+                  Step {currentStep + 1} of {navigationInfo.steps.length}
                 </Text>
-              </View>
-              <Text style={styles.stepDistance}>
-                {navigationInfo.steps[currentStep]?.distance}
-              </Text>
-              <View style={styles.stepNavButtons}>
-                <TouchableOpacity
-                  style={[styles.stepNavBtn, currentStep === 0 && styles.stepNavBtnDisabled]}
-                  onPress={onPrevStep}
-                  disabled={currentStep === 0}
-                >
-                  <Ionicons name="chevron-back" size={20} color={currentStep === 0 ? '#CCC' : '#3B82F6'} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.stepNavBtn,
-                    currentStep >= navigationInfo.steps.length - 1 && styles.stepNavBtnDisabled,
-                  ]}
-                  onPress={onNextStep}
-                  disabled={currentStep >= navigationInfo.steps.length - 1}
-                >
+                <View style={styles.stepContent}>
                   <Ionicons
-                    name="chevron-forward"
-                    size={20}
-                    color={currentStep >= navigationInfo.steps.length - 1 ? '#CCC' : '#3B82F6'}
+                    name={getManeuverIcon(navigationInfo.steps[currentStep]?.maneuver)}
+                    size={24}
+                    color="#3B82F6"
                   />
-                </TouchableOpacity>
+                  <Text style={styles.stepInstruction}>
+                    {navigationInfo.steps[currentStep]?.instruction?.replace(/<[^>]*>/g, '') || ''}
+                  </Text>
+                </View>
+                <Text style={styles.stepDistance}>
+                  {navigationInfo.steps[currentStep]?.distance}
+                </Text>
+                <View style={styles.stepNavButtons}>
+                  <TouchableOpacity
+                    style={[styles.stepNavBtn, currentStep === 0 && styles.stepNavBtnDisabled]}
+                    onPress={onPrevStep}
+                    disabled={currentStep === 0}
+                  >
+                    <Ionicons name="chevron-back" size={20} color={currentStep === 0 ? '#CCC' : '#3B82F6'} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.stepNavBtn,
+                      currentStep >= navigationInfo.steps.length - 1 && styles.stepNavBtnDisabled,
+                    ]}
+                    onPress={onNextStep}
+                    disabled={currentStep >= navigationInfo.steps.length - 1}
+                  >
+                    <Ionicons
+                      name="chevron-forward"
+                      size={20}
+                      color={currentStep >= navigationInfo.steps.length - 1 ? '#CCC' : '#3B82F6'}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          )}
+            )}
 
-          <TouchableOpacity style={styles.cancelNavButton} onPress={onCancelNavigation}>
-            <Ionicons name="close-circle" size={20} color="#FFF" />
-            <Text style={styles.cancelNavText}>End Navigation</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Toggle Filters Button during Navigation */}
+            <TouchableOpacity
+              style={styles.toggleFiltersButton}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Ionicons name={showFilters ? "chevron-up" : "options"} size={18} color="#3B82F6" />
+              <Text style={styles.toggleFiltersText}>
+                {showFilters ? 'Hide Filters' : 'Station Filters'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Filters Section (collapsible during navigation) */}
+            {showFilters && (
+              <View style={styles.navFiltersContainer}>
+                {/* Radius Slider */}
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterLabel}>Search Radius: {localRadius} km</Text>
+                  <Slider
+                    style={styles.slider}
+                    minimumValue={1}
+                    maximumValue={50}
+                    step={1}
+                    value={localRadius}
+                    onValueChange={setLocalRadius}
+                    onSlidingComplete={onRadiusChange}
+                    minimumTrackTintColor="#3B82F6"
+                    maximumTrackTintColor="#E5E7EB"
+                    thumbTintColor="#3B82F6"
+                  />
+                  <View style={styles.sliderLabels}>
+                    <Text style={styles.sliderLabelText}>1 km</Text>
+                    <Text style={styles.sliderLabelText}>50 km</Text>
+                  </View>
+                </View>
+
+                {/* Connector Types */}
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterLabel}>Connector Types</Text>
+                  <View style={styles.filterChips}>
+                    {CONNECTOR_TYPES.map((connector) => (
+                      <TouchableOpacity
+                        key={connector.id}
+                        style={[
+                          styles.filterChip,
+                          selectedConnectors.includes(connector.id) && styles.filterChipSelected,
+                        ]}
+                        onPress={() => onConnectorToggle(connector.id)}
+                      >
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            selectedConnectors.includes(connector.id) && styles.filterChipTextSelected,
+                          ]}
+                        >
+                          {connector.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Charging Speed */}
+                <View style={styles.filterSection}>
+                  <Text style={styles.filterLabel}>Charging Speed</Text>
+                  <View style={styles.filterChips}>
+                    {CHARGING_SPEEDS.map((speed) => (
+                      <TouchableOpacity
+                        key={speed.id}
+                        style={[
+                          styles.filterChip,
+                          selectedSpeeds.includes(speed.id) && {
+                            ...styles.filterChipSelected,
+                            backgroundColor: PIN_COLORS[speed.id],
+                            borderColor: PIN_COLORS[speed.id],
+                          },
+                        ]}
+                        onPress={() => onSpeedToggle(speed.id)}
+                      >
+                        <Ionicons
+                          name="flash"
+                          size={14}
+                          color={selectedSpeeds.includes(speed.id) ? '#FFF' : PIN_COLORS[speed.id]}
+                        />
+                        <Text
+                          style={[
+                            styles.filterChipText,
+                            { marginLeft: 4 },
+                            selectedSpeeds.includes(speed.id) && styles.filterChipTextSelected,
+                          ]}
+                        >
+                          {speed.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.cancelNavButton} onPress={onCancelNavigation}>
+              <Ionicons name="close-circle" size={20} color="#FFF" />
+              <Text style={styles.cancelNavText}>End Navigation</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       ) : (
         <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
           {/* Search Input */}
@@ -511,6 +613,28 @@ const styles = StyleSheet.create({
   },
   stepNavBtnDisabled: {
     opacity: 0.5,
+  },
+  toggleFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EBF5FF',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  toggleFiltersText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  navFiltersContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
   },
   cancelNavButton: {
     flexDirection: 'row',
