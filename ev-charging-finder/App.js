@@ -198,7 +198,7 @@ export default function App() {
     [sessionToken]
   );
 
-  // Handle direct search (enter key)
+  // Handle direct search (enter key) - show location popup instead of navigating directly
   const handleSearch = useCallback(
     async (query) => {
       if (!query || query.length < 2) return;
@@ -213,7 +213,26 @@ export default function App() {
             latitude: location.lat,
             longitude: location.lng,
           };
-          startNavigation(destCoord, result.results[0].formatted_address);
+          
+          // Set selected location to show LocationCard with navigate button
+          setSelectedStation(null);
+          setIsPanelExpanded(false);
+          setSelectedLocation({
+            latitude: destCoord.latitude,
+            longitude: destCoord.longitude,
+            name: result.results[0].formatted_address?.split(',')[0] || query,
+            address: result.results[0].formatted_address,
+          });
+
+          // Load stations centered on the selected location
+          loadStations(destCoord.latitude, destCoord.longitude, radius);
+
+          // Animate map to the location
+          mapRef.current?.animateToRegion({
+            ...destCoord,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          });
         } else {
           Alert.alert('Not Found', 'Could not find the specified location.');
         }
@@ -224,7 +243,7 @@ export default function App() {
         setIsSearching(false);
       }
     },
-    [userLocation]
+    [radius, loadStations]
   );
 
   // Handle place selection from autocomplete
