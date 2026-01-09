@@ -5,7 +5,9 @@ import * as Location from 'expo-location';
 import { StatusBar } from 'expo-status-bar';
 
 import CustomMarker from './src/components/CustomMarker';
+import ClusterMarker from './src/components/ClusterMarker';
 import StationCard from './src/components/StationCard';
+import LocationCard from './src/components/LocationCard';
 import FilterPanel from './src/components/FilterPanel';
 import {
   fetchChargingStations,
@@ -16,6 +18,7 @@ import {
   decodePolyline,
   getPointsAlongRoute,
 } from './src/services/api';
+import { clusterStations } from './src/utils/clustering';
 import { DEFAULT_LOCATION, ROUTE_FETCH_INTERVAL_KM } from './src/constants';
 
 export default function App() {
@@ -23,7 +26,9 @@ export default function App() {
   const [region, setRegion] = useState(DEFAULT_LOCATION);
   const [userLocation, setUserLocation] = useState(null);
   const [stations, setStations] = useState([]);
+  const [clusters, setClusters] = useState([]);
   const [selectedStation, setSelectedStation] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Filter states
@@ -78,6 +83,12 @@ export default function App() {
     })();
   }, []);
 
+  // Re-cluster when stations or region changes
+  useEffect(() => {
+    const clustered = clusterStations(stations, region, 45);
+    setClusters(clustered);
+  }, [stations, region]);
+
   // Load stations when filters or location change
   const loadStations = useCallback(
     async (lat, lng, searchRadius, connectors = selectedConnectors, speeds = selectedSpeeds) => {
@@ -95,15 +106,21 @@ export default function App() {
     [selectedConnectors, selectedSpeeds]
   );
 
+  // Handle region change (for re-clustering)
+  const handleRegionChangeComplete = useCallback((newRegion) => {
+    setRegion(newRegion);
+  }, []);
+
   // Handle radius change
   const handleRadiusChange = useCallback(
     (newRadius) => {
       setRadius(newRadius);
-      if (userLocation && !isNavigating) {
-        loadStations(userLocation.latitude, userLocation.longitude, newRadius);
+      const centerLocation = selectedLocation || userLocation;
+      if (centerLocation && !isNavigating) {
+        loadStations(centerLocation.latitude, centerLocation.longitude, newRadius);
       }
     },
-    [userLocation, isNavigating, loadStations]
+    [userLocation, selectedLocation, isNavigating, loadStations]
   );
 
   // Handle connector toggle
@@ -113,11 +130,12 @@ export default function App() {
         ? selectedConnectors.filter((c) => c !== connectorId)
         : [...selectedConnectors, connectorId];
       setSelectedConnectors(newConnectors);
-      if (userLocation && !isNavigating) {
-        loadStations(userLocation.latitude, userLocation.longitude, radius, newConnectors);
+      const centerLocation = selectedLocation || userLocation;
+      if (centerLocation && !isNavigating) {
+        loadStations(centerLocation.latitude, centerLocation.longitude, radius, newConnectors);
       }
     },
-    [selectedConnectors, userLocation, isNavigating, radius, loadStations]
+    [selectedConnectors, userLocation, selectedLocation, isNavigating, radius, loadStations]
   );
 
   // Handle speed toggle
@@ -127,17 +145,18 @@ export default function App() {
         ? selectedSpeeds.filter((s) => s !== speedId)
         : [...selectedSpeeds, speedId];
       setSelectedSpeeds(newSpeeds);
-      if (userLocation && !isNavigating) {
+      const centerLocation = selectedLocation || userLocation;
+      if (centerLocation && !isNavigating) {
         loadStations(
-          userLocation.latitude,
-          userLocation.longitude,
+          centerLocation.latitude,
+          centerLocation.longitude,
           radius,
           selectedConnectors,
           newSpeeds
         );
       }
     },
-    [selectedSpeeds, userLocation, isNavigating, radius, selectedConnectors, loadStations]
+    [selectedSpeeds, userLocation, selectedLocation, isNavigating, radius, selectedConnectors, loadStations]
   );
 
   // Handle search input change
@@ -209,7 +228,6 @@ export default function App() {
             longitude: location.lng,
           };
           startNavigation(destCoord, details.result.formatted_address || place.description);
-          // Generate new session token for next search
           setSessionToken(Date.now().toString());
         }
       } catch (error) {
@@ -222,27 +240,63 @@ export default function App() {
     [sessionToken, userLocation]
   );
 
-  // Handle map press - navigate to that location
+  // Handle map press - select location and show card
   const handleMapPress = useCallback(
-    (event) => {
+    async (event) => {
       if (isNavigating) return;
 
       const { coordinate } = event.nativeEvent;
       if (coordinate) {
-        Alert.alert(
-          'Navigate Here?',
-          'Would you like to navigate to this location?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Navigate',
-              onPress: () => startNavigation(coordinate, 'Selected Location'),
-            },
-          ]
-        );
+        // Clear any selected station
+        setSelectedStation(null);
+        setIsPanelExpanded(false);
+
+        // Set the selected location immediately with coordinates
+        const newLocation = {
+          latitude: coordinate.latitude,
+          longitude: coordinate.longitude,
+          name: 'Loading...',
+          address: null,
+        };
+        setSelectedLocation(newLocation);
+
+        // Load stations centered on the selected location
+        loadStations(coordinate.latitude, coordinate.longitude, radius);
+
+        // Reverse geocode to get address
+        try {
+          const response = await geocodeAddress(`${coordinate.latitude},${coordinate.longitude}`);
+          if (response.results && response.results.length > 0) {
+            const result = response.results[0];
+            setSelectedLocation({
+              latitude: coordinate.latitude,
+              longitude: coordinate.longitude,
+              name: result.formatted_address?.split(',')[0] || 'Selected Location',
+              address: result.formatted_address,
+            });
+          } else {
+            setSelectedLocation({
+              ...newLocation,
+              name: 'Selected Location',
+            });
+          }
+        } catch (error) {
+          console.error('Reverse geocode error:', error);
+          setSelectedLocation({
+            ...newLocation,
+            name: 'Selected Location',
+          });
+        }
+
+        // Animate map to center on the selected location
+        mapRef.current?.animateToRegion({
+          ...coordinate,
+          latitudeDelta: region.latitudeDelta,
+          longitudeDelta: region.longitudeDelta,
+        });
       }
     },
-    [isNavigating, userLocation]
+    [isNavigating, radius, region, loadStations]
   );
 
   // Start navigation to a destination
@@ -254,6 +308,9 @@ export default function App() {
       }
 
       setIsLoading(true);
+      setSelectedLocation(null);
+      setSelectedStation(null);
+
       try {
         const directionsResult = await getDirections(userLocation, destCoord);
 
@@ -261,11 +318,9 @@ export default function App() {
           const route = directionsResult.routes[0];
           const leg = route.legs[0];
 
-          // Decode the polyline
           const routePoints = decodePolyline(route.overview_polyline.points);
           setRouteCoordinates(routePoints);
 
-          // Parse steps
           const steps = leg.steps.map((step) => ({
             instruction: step.html_instructions,
             distance: step.distance.text,
@@ -283,16 +338,13 @@ export default function App() {
           setDestination(destCoord);
           setIsNavigating(true);
           setCurrentStep(0);
-          setSelectedStation(null);
           setIsPanelExpanded(true);
 
-          // Fit map to show entire route
           mapRef.current?.fitToCoordinates(routePoints, {
             edgePadding: { top: 150, right: 50, bottom: 200, left: 50 },
             animated: true,
           });
 
-          // Fetch stations along the route
           await fetchStationsAlongRoute(routePoints);
         } else {
           Alert.alert('Error', 'Could not find a route to the destination.');
@@ -352,6 +404,16 @@ export default function App() {
     [startNavigation]
   );
 
+  // Navigate to selected location from card
+  const handleNavigateToLocation = useCallback(() => {
+    if (selectedLocation) {
+      startNavigation(
+        { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude },
+        selectedLocation.name || 'Selected Location'
+      );
+    }
+  }, [selectedLocation, startNavigation]);
+
   // Cancel navigation
   const handleCancelNavigation = useCallback(() => {
     setIsNavigating(false);
@@ -360,8 +422,8 @@ export default function App() {
     setDestination(null);
     setCurrentStep(0);
     setSearchQuery('');
+    setSelectedLocation(null);
 
-    // Reload stations at user's location
     if (userLocation) {
       loadStations(userLocation.latitude, userLocation.longitude, radius);
       mapRef.current?.animateToRegion({
@@ -385,6 +447,7 @@ export default function App() {
       };
 
       setUserLocation(newLocation);
+      setSelectedLocation(null);
 
       mapRef.current?.animateToRegion({
         ...newLocation,
@@ -403,9 +466,42 @@ export default function App() {
 
   // Handle station marker press
   const handleStationPress = useCallback((station) => {
+    setSelectedLocation(null);
     setSelectedStation(station);
     setIsPanelExpanded(false);
   }, []);
+
+  // Handle cluster press - zoom in or show first station if single
+  const handleClusterPress = useCallback((cluster) => {
+    if (cluster.count === 1) {
+      handleStationPress(cluster.stations[0]);
+    } else {
+      // Zoom in to show individual markers
+      const latitudes = cluster.stations.map(s => s.lat);
+      const longitudes = cluster.stations.map(s => s.lng);
+      const minLat = Math.min(...latitudes);
+      const maxLat = Math.max(...latitudes);
+      const minLng = Math.min(...longitudes);
+      const maxLng = Math.max(...longitudes);
+
+      mapRef.current?.animateToRegion({
+        latitude: (minLat + maxLat) / 2,
+        longitude: (minLng + maxLng) / 2,
+        latitudeDelta: Math.max((maxLat - minLat) * 1.5, 0.01),
+        longitudeDelta: Math.max((maxLng - minLng) * 1.5, 0.01),
+      });
+    }
+  }, [handleStationPress]);
+
+  // Close any card
+  const handleCloseCard = useCallback(() => {
+    setSelectedStation(null);
+    setSelectedLocation(null);
+  }, []);
+
+  // Determine which card to show
+  const showStationCard = selectedStation && !isPanelExpanded;
+  const showLocationCard = selectedLocation && !selectedStation && !isPanelExpanded && !isNavigating;
 
   return (
     <View style={styles.container}>
@@ -420,13 +516,14 @@ export default function App() {
         showsMyLocationButton={false}
         showsCompass={false}
         onPress={handleMapPress}
+        onRegionChangeComplete={handleRegionChangeComplete}
       >
-        {/* Charging station markers */}
-        {stations.map((station) => (
-          <CustomMarker
-            key={station.id}
-            station={station}
-            onPress={handleStationPress}
+        {/* Clustered charging station markers */}
+        {clusters.map((cluster) => (
+          <ClusterMarker
+            key={cluster.id}
+            cluster={cluster}
+            onPress={handleClusterPress}
           />
         ))}
 
@@ -446,6 +543,17 @@ export default function App() {
             coordinate={destination}
             pinColor="#10B981"
             title="Destination"
+          />
+        )}
+
+        {/* Selected location marker (when not navigating) */}
+        {selectedLocation && !isNavigating && (
+          <Marker
+            coordinate={{
+              latitude: selectedLocation.latitude,
+              longitude: selectedLocation.longitude,
+            }}
+            pinColor="#EF4444"
           />
         )}
       </MapView>
@@ -475,13 +583,25 @@ export default function App() {
         onPrevStep={() => setCurrentStep((prev) => Math.max(prev - 1, 0))}
       />
 
-      {/* Station Card */}
-      {selectedStation && !isPanelExpanded && (
-        <View style={styles.stationCardContainer}>
+      {/* Station Card - anchored to bottom */}
+      {showStationCard && (
+        <View style={styles.bottomCardContainer}>
           <StationCard
             station={selectedStation}
             onNavigate={() => handleNavigateToStation(selectedStation)}
-            onClose={() => setSelectedStation(null)}
+            onClose={handleCloseCard}
+          />
+        </View>
+      )}
+
+      {/* Location Card - anchored to bottom */}
+      {showLocationCard && (
+        <View style={styles.bottomCardContainer}>
+          <LocationCard
+            location={selectedLocation}
+            onNavigate={handleNavigateToLocation}
+            onClose={handleCloseCard}
+            isLoading={isLoading}
           />
         </View>
       )}
@@ -497,10 +617,11 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  stationCardContainer: {
+  bottomCardContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 100,
   },
 });
