@@ -243,9 +243,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   operatorsList: {
-    minHeight: 160,
-    maxHeight: 220,
-    flexGrow: 1,
+    flex: 1,
+    minHeight: 120,
+    maxHeight: 180,
   },
   operatorCard: {
     backgroundColor: '#F9FAFB',
