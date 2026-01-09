@@ -26,7 +26,7 @@ export const getPixelDistance = (coord1, coord2, region) => {
 export const clusterStations = (stations, region, minPixelDistance = 40) => {
   if (!stations || stations.length === 0) return [];
   if (!region) return stations.map(s => ({
-    id: `cluster-${s.id}`,
+    id: `cluster-${s.id}-1`,
     coordinate: { latitude: s.lat, longitude: s.lng },
     stations: [s],
     count: 1,
@@ -39,15 +39,7 @@ export const clusterStations = (stations, region, minPixelDistance = 40) => {
     if (processed.has(stations[i].id)) continue;
 
     const station = stations[i];
-    const cluster = {
-      id: `cluster-${station.id}`,
-      coordinate: {
-        latitude: station.lat,
-        longitude: station.lng,
-      },
-      stations: [station],
-      count: 1,
-    };
+    const clusterStations = [station];
 
     processed.add(station.id);
 
@@ -62,21 +54,29 @@ export const clusterStations = (stations, region, minPixelDistance = 40) => {
       const pixelDistance = getPixelDistance(coord1, coord2, region);
 
       if (pixelDistance < minPixelDistance) {
-        cluster.stations.push(otherStation);
-        cluster.count++;
+        clusterStations.push(otherStation);
         processed.add(otherStation.id);
-
-        // Update cluster center to average of all stations
-        const totalLat = cluster.stations.reduce((sum, s) => sum + s.lat, 0);
-        const totalLng = cluster.stations.reduce((sum, s) => sum + s.lng, 0);
-        cluster.coordinate = {
-          latitude: totalLat / cluster.stations.length,
-          longitude: totalLng / cluster.stations.length,
-        };
       }
     }
 
-    clusters.push(cluster);
+    // Calculate cluster center as average of all stations
+    const totalLat = clusterStations.reduce((sum, s) => sum + s.lat, 0);
+    const totalLng = clusterStations.reduce((sum, s) => sum + s.lng, 0);
+    const coordinate = {
+      latitude: totalLat / clusterStations.length,
+      longitude: totalLng / clusterStations.length,
+    };
+
+    // Generate unique ID that includes count and all station IDs to force re-render when cluster changes
+    const stationIds = clusterStations.map(s => s.id).sort().join('-');
+    const clusterId = `cluster-${stationIds}-${clusterStations.length}`;
+
+    clusters.push({
+      id: clusterId,
+      coordinate,
+      stations: clusterStations,
+      count: clusterStations.length,
+    });
   }
 
   return clusters;
