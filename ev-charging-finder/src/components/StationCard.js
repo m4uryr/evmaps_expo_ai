@@ -204,7 +204,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   operatorsList: {
-    maxHeight: 180,
+    minHeight: 160,
+    maxHeight: 220,
+    flexGrow: 1,
   },
   operatorCard: {
     backgroundColor: '#F9FAFB',
