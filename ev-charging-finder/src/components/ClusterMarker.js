@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +13,19 @@ const SPEED_PRIORITY = {
 
 const ClusterMarker = ({ cluster, onPress }) => {
   const { coordinate, stations, count } = cluster;
+  
+  // Track view changes temporarily when count changes to force marker re-render
+  const [shouldTrackChanges, setShouldTrackChanges] = useState(true);
+  
+  useEffect(() => {
+    // Enable tracking when cluster changes
+    setShouldTrackChanges(true);
+    // Disable after a short delay to improve performance
+    const timer = setTimeout(() => {
+      setShouldTrackChanges(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [count, cluster.id]);
 
   // Find the fastest charging speed in the cluster
   const fastestSpeed = stations.reduce((fastest, station) => {
@@ -22,22 +35,23 @@ const ClusterMarker = ({ cluster, onPress }) => {
   }, 'AC');
 
   const pinColor = PIN_COLORS[fastestSpeed] || PIN_COLORS['AC'];
+  const isCluster = count > 1;
 
   return (
     <Marker
       coordinate={coordinate}
       onPress={() => onPress(cluster)}
-      tracksViewChanges={false}
+      tracksViewChanges={shouldTrackChanges}
     >
       <View style={styles.markerContainer}>
         <View style={[styles.markerCircle, { backgroundColor: pinColor }]}>
-          {count > 1 ? (
+          {isCluster ? (
             <Text style={styles.countText}>{count}</Text>
           ) : (
             <Ionicons name="flash" size={16} color="#FFFFFF" />
           )}
         </View>
-        <View style={styles.markerTail} />
+        <View style={[styles.markerTail, { borderTopColor: pinColor }]} />
       </View>
     </Marker>
   );
