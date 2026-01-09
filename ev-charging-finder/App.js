@@ -83,11 +83,15 @@ export default function App() {
     })();
   }, []);
 
-  // Re-cluster when stations or region changes
-  useEffect(() => {
-    const clustered = clusterStations(stations, region, 45);
-    setClusters(clustered);
+  // Re-cluster when stations or region changes - use memoization for stability
+  const clusteredStations = useMemo(() => {
+    return clusterStations(stations, region, 45);
   }, [stations, region]);
+
+  // Update clusters state when memoized value changes
+  useEffect(() => {
+    setClusters(clusteredStations);
+  }, [clusteredStations]);
 
   // Load stations when filters or location change
   const loadStations = useCallback(
